@@ -1,20 +1,21 @@
 const express=require("express");
 const app=express();
 
-app.use("/ok",(req,res)=>{
-    res.send("Hi i am from server team...")
+
+app.get("/user/:userId/:name/:password",(req,res)=>{
+    console.log(req.params);
+    res.send({firstName:"Nitin",lastName:"Kaplas"});
 })
 
 
-app.get("/about",(req,res)=>{
-    res.send("Hi i am from about page!!!")
+app.post("/user",(req,res)=>{
+    res.send("data saved successfully to the db!!")
 })
 
-app.get("/home",(req,res)=>{
-    res.send("Hi i am from home page!!!")
+app.delete("/user",(req,res)=>{
+    res.send("data deleted successfully!!")
 })
 
 app.listen(3000,()=>{
-    console.log("We are listening at port 3000...")
+    console.log("server is running at 3000");
 })
-
