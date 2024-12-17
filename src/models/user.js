@@ -42,8 +42,14 @@ const userSchema=mongoose.Schema({
       },
       skills:{
         type:[String],
+        validate(value){
+          if(value.length>5)
+          throw new Error("you have max limit of 5 skills pls remove till 5!!")
+
+        }
+
       }
-},{timestamps:true},{collections:"user"})
+},{timestamps:true})
 
 userSchema.path('email').validate(async function(value){
   const count = await this.model('User').countDocuments({ email: value });

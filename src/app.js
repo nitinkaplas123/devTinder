@@ -44,13 +44,25 @@ app.delete("/user",async(req,res)=>{
 })
 
 //update using patch method 
-app.patch("/user",async(req,res)=>{
-    const userId=req.body._id;
+app.patch("/user/:userId/:rollNo",async(req,res)=>{
+    const userId=req.params?.userId;
+    console.log(userId);
+    console.log("roll no :"+ req.params.rollNo);
     const data=req.body;
+
     try{
-      await User.findByIdAndUpdate({_id:userId},data,{
+       const allowedUpdates=["skills","_id","photoUrl","gender","age","about"];
+
+       const isUpdatedAllowed=Object.keys(data).every((k)=>
+        allowedUpdates.includes(k)
+       )
+       if(!isUpdatedAllowed){
+        throw new Error("Update not allowed!!")
+       }
+
+       await User.findByIdAndUpdate({_id:userId},data,{
         runValidators:true,
-      });
+       });
      
       res.send("updated the user data by userId successfully!!")
     }catch(err){
