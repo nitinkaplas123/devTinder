@@ -5,6 +5,61 @@ const {User} =require('./models/user')
 
 app.use(express.json());
 
+
+//get all the user by emailId 
+app.get("/user",async(req,res)=>{
+    const userEmail=req.body.email;
+    
+    try{
+      const users= await User.find({email:userEmail});
+      if(users.length === 0)
+      res.status(404).send("user not found");
+      else
+      res.send(users);
+    }catch(err){
+      res.send("something went wrong!!");
+    }
+})
+
+//get the whole userData from dataBase
+app.get("/feed",async(req,res)=>{
+    try{
+      const users=await User.find({});
+      res.send(users);
+    }catch(err){
+      console.log("something went wrong!!");
+    }
+})
+
+//delete userData by using userId
+app.delete("/user",async(req,res)=>{
+      const userId=req.body.userId;
+
+      try{
+        await User.findByIdAndDelete({_id:userId});
+        res.send("delete user by userId successfully!!")
+      }catch(err){
+        res.send("something went wrong!!");
+      }
+})
+
+//update using patch method 
+app.patch("/user",async(req,res)=>{
+    const userId=req.body._id;
+    const data=req.body;
+    try{
+      await User.findByIdAndUpdate({_id:userId},data,{
+        runValidators:true,
+      });
+     
+      res.send("updated the user data by userId successfully!!")
+    }catch(err){
+      res.send("updation is not happen bcz of "+err.message);
+    }
+})
+
+
+//post the data or say store the data in dataBase
 app.post("/signup",async(req,res)=>{
    console.log(req.body);
    const newUser=new User(req.body);
@@ -12,9 +67,10 @@ app.post("/signup",async(req,res)=>{
        await newUser.save();
        res.send("data saved successfully!!");
    }catch(err){
-    res.send("something went wrong!!");
+    res.status(400).send("error is:"+err.message);
    }
-})
+}) 
+
 
 connectDB().then(()=>{
        console.log("db connected");
