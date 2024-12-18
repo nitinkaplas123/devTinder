@@ -2,6 +2,12 @@ const express=require('express');
 const app=express();
 const {connectDB}=require('./config/dataBase')
 const {User} =require('./models/user')
+const {validationSignUpData}=require('./utils/validation')
+const bcrypt = require('bcrypt');
+const validator=require('validator');
+
+
+
 
 app.use(express.json());
 
@@ -44,10 +50,9 @@ app.delete("/user",async(req,res)=>{
 })
 
 //update using patch method 
-app.patch("/user/:userId/:rollNo",async(req,res)=>{
+app.patch("/user/:userId",async(req,res)=>{
     const userId=req.params?.userId;
-    console.log(userId);
-    console.log("roll no :"+ req.params.rollNo);
+   
     const data=req.body;
 
     try{
@@ -73,16 +78,56 @@ app.patch("/user/:userId/:rollNo",async(req,res)=>{
 
 //post the data or say store the data in dataBase
 app.post("/signup",async(req,res)=>{
-   console.log(req.body);
-   const newUser=new User(req.body);
    try{
+       //step1  validate the userData 
+       validationSignUpData(req);
+   
+       //step2 encrypte the password 
+       const {firstName,lastName,email,password}=req.body;
+       const passwordHash=await bcrypt.hash(password,10);
+       //step 3 
+       const newUser=new User({
+        firstName,
+        lastName,
+        email,
+        password:passwordHash,
+       });
+
        await newUser.save();
        res.send("data saved successfully!!");
    }catch(err){
-    res.status(400).send("error is:"+err.message);
+    res.status(400).send("ERROR:"+err.message);
    }
 }) 
 
+app.post("/login",async(req,res)=>{
+    try{
+      const {email,password}=req.body;
+
+      //validate email 
+      if(!validator.isEmail(email)){
+        throw new Error("pls enter the valid emailId");
+       }
+
+       // check email is present in my database or not 
+       const user=await User.findOne({email:email});
+      
+       if(!user){
+        throw new Error("InValid Credentials!!")
+       }
+       
+       const isPasswordValid=await bcrypt.compare(password,user.password);
+       if(!isPasswordValid){
+        throw new Error("InValid Credentials!!")
+       }
+       else{
+        res.send("Login Successfully!!")
+       }
+
+    }catch(err){
+      res.status(400).send("ERROR:"+err.message);
+     }
+})
 
 connectDB().then(()=>{
        console.log("db connected");
