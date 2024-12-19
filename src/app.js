@@ -5,75 +5,15 @@ const {User} =require('./models/user')
 const {validationSignUpData}=require('./utils/validation')
 const bcrypt = require('bcrypt');
 const validator=require('validator');
-
-
-
+const cookieParser=require('cookie-parser');
+const jwt=require('jsonwebtoken');
+const {userAuth}=require('./middlewares/auth');
 
 app.use(express.json());
+app.use(cookieParser());
 
 
-//get all the user by emailId 
-app.get("/user",async(req,res)=>{
-    const userEmail=req.body.email;
-    
-    try{
-      const users= await User.find({email:userEmail});
-      if(users.length === 0)
-      res.status(404).send("user not found");
-      else
-      res.send(users);
-    }catch(err){
-      res.send("something went wrong!!");
-    }
-})
 
-//get the whole userData from dataBase
-app.get("/feed",async(req,res)=>{
-    try{
-      const users=await User.find({});
-      res.send(users);
-    }catch(err){
-      console.log("something went wrong!!");
-    }
-})
-
-//delete userData by using userId
-app.delete("/user",async(req,res)=>{
-      const userId=req.body.userId;
-
-      try{
-        await User.findByIdAndDelete({_id:userId});
-        res.send("delete user by userId successfully!!")
-      }catch(err){
-        res.send("something went wrong!!");
-      }
-})
-
-//update using patch method 
-app.patch("/user/:userId",async(req,res)=>{
-    const userId=req.params?.userId;
-   
-    const data=req.body;
-
-    try{
-       const allowedUpdates=["skills","_id","photoUrl","gender","age","about"];
-
-       const isUpdatedAllowed=Object.keys(data).every((k)=>
-        allowedUpdates.includes(k)
-       )
-       if(!isUpdatedAllowed){
-        throw new Error("Update not allowed!!")
-       }
-
-       await User.findByIdAndUpdate({_id:userId},data,{
-        runValidators:true,
-       });
-     
-      res.send("updated the user data by userId successfully!!")
-    }catch(err){
-      res.send("updation is not happen bcz of "+err.message);
-    }
-})
 
 
 //post the data or say store the data in dataBase
@@ -100,34 +40,63 @@ app.post("/signup",async(req,res)=>{
    }
 }) 
 
+//login the user
 app.post("/login",async(req,res)=>{
     try{
-      const {email,password}=req.body;
+     const {email,password}=req.body;
 
-      //validate email 
-      if(!validator.isEmail(email)){
-        throw new Error("pls enter the valid emailId");
-       }
+     // email is valid or not 
+     if(!validator.isEmail(email)){
+      throw new Error("email is not valid");
+     }
 
-       // check email is present in my database or not 
-       const user=await User.findOne({email:email});
-      
-       if(!user){
-        throw new Error("InValid Credentials!!")
-       }
-       
-       const isPasswordValid=await bcrypt.compare(password,user.password);
-       if(!isPasswordValid){
-        throw new Error("InValid Credentials!!")
-       }
-       else{
-        res.send("Login Successfully!!")
-       }
+     //email is present in my dB or not 
+     const user=await User.findOne({email:email});
+     
+     if(!user){
+      throw new Error("InValid Credentials!");
+     }
+     
+     //password matching 
+     const isPasswordValid=await bcrypt.compare(password,user.password);
+     if(isPasswordValid){
+
+      //step1 -> create the jwt token 
+      const token=await jwt.sign({_id:user._id},"DEV@TINDER123",{expiresIn:'0d'});
+
+      //step2 -> create the cookie and put the jwt token inside it and give in terms of response.
+      res.cookie("token",token,{ expires: new Date(Date.now()+10000), httpOnly: true });
+
+      res.send("Login Successfully");
+     }else{
+      throw new Error("InValid Credentials!!")
+     }
+
 
     }catch(err){
-      res.status(400).send("ERROR:"+err.message);
-     }
+      res.status(400).send(err.message);
+    }
 })
+
+
+// get the profile of user 
+app.get("/profile",userAuth,async(req,res)=>{
+  try{
+    const user=req.user;
+    res.send(user);
+  }catch(err){
+    res.status(400).send("Error:"+err.message);
+  }
+  
+})
+
+//sending the connection request 
+app.post("/sendConnectionRequest",userAuth,async(req,res)=>{
+  const user=req.user;
+  console.log("sending the connection request");
+  res.send(user.firstName+" "+ "sending the connection request!!");
+})
+
 
 connectDB().then(()=>{
        console.log("db connected");

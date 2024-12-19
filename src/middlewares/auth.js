@@ -1,29 +1,37 @@
-const adminAuth=(req,res,next)=>{
-    console.log("we are in admin middleware")
-    const token="abc";
-    const isAuthorized= token==="abc";
-    if(!isAuthorized){
-     res.status(401).send("you are not admin");
+const cookieParser =require('cookie-parser');
+const jwt=require('jsonwebtoken');
+// const {User} =require('./models/user')
+const {User} =require('../models/user')
+
+const userAuth=async(req,res,next)=>{
+    try{
+       //read the token from req.cookies
+    const {token}=req.cookies;
+    if(!token){
+      throw new Error("token is not valid");
     }
-    else{
-      console.log("adminAuth file")
+  
+    //verify the token 
+    const decodedMessage=await jwt.verify(token,"DEV@TINDER123");
+    const {_id}=decodedMessage;
+    
+    //find the user that exist in my database or not 
+    const user=await User.findById({_id});
+
+    if(!user){
+      throw new Error("invalid user");
+    }else{
+      console.log("means middleware is correct working!!")
+      req.user=user;
       next();
     }
-}
-const userAuth=(req,res,next)=>{
-    console.log("we are in admin middleware")
-    const token="abc";
-    const isAuthorized= token==="abc";
-    if(!isAuthorized){
-     res.status(401).send("you are not admin");
-    }
-    else{
-      console.log("adminAuth file")
-      next();
-    }
+
+  }catch(err){
+    res.status(400).send(err.message);
+  }
+   
 }
 
 module.exports={
-    adminAuth,
-    userAuth
+    userAuth,
 }
