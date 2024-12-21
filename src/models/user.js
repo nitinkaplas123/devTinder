@@ -1,5 +1,8 @@
 const mongoose=require('mongoose');
 const validator=require("validator");
+const jwt=require('jsonwebtoken')
+const bcrypt =require('bcrypt');
+
 
 const userSchema=mongoose.Schema({
       firstName:{
@@ -67,14 +70,34 @@ const userSchema=mongoose.Schema({
       }
 },{timestamps:true})
 
+// write the method for checking the email is already present in my dataBase or not.
 userSchema.path('email').validate(async function(value){
   const count = await this.model('User').countDocuments({ email: value });
   return count === 0;  // If count is greater than 0, it means the email exists.
 }, 'Email already exists');
 
 
+// create the token and return it back 
+// here always use normal function do not use arrow function they didnt understand this keyword 
+userSchema.methods.getJWT=async function(){
+  const user=this;
+
+  const token=await jwt.sign({_id:user._id},"DEV@TINDER123",{expiresIn:'1d'});
+  return token;
+}
+
+userSchema.methods.validatePassword=async function(passwordInputByUser){
+     const user=this;
+     const passwordHash=user.password;
+     const isPasswordValid=await bcrypt.compare(passwordInputByUser,passwordHash);
+     return isPasswordValid;
+}
+
 const User=mongoose.model("User",userSchema);
 
 module.exports={
    User,
 }
+
+
+
